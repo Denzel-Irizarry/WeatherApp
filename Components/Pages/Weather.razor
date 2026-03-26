@@ -124,7 +124,7 @@ else if (forecast is not null)
         }
         catch (TomorrowIoApiException ex)
         {
-            errorMessage = $"{ex.Message} Response: {ex.ResponseBody}";
+            errorMessage = ex.Message;
         }
         catch (Exception ex)
         {

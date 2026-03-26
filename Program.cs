@@ -2,6 +2,7 @@ using WeatherApp.Components;
 using WeatherApp.Models;
 using WeatherApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace WeatherApp
 {
@@ -48,6 +49,7 @@ namespace WeatherApp
             app.MapGet("/api/weather/forecast", async (
                 [FromQuery] string location,
                 IWeatherForecastService forecastService,
+                ILogger<Program> logger,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(location))
@@ -62,10 +64,10 @@ namespace WeatherApp
                 }
                 catch (TomorrowIoApiException ex)
                 {
+                    logger.LogWarning(ex, "Tomorrow.io request failed for location {Location}.", location);
                     return Results.BadRequest(new
                     {
-                        error = ex.Message,
-                        details = ex.ResponseBody
+                        error = ex.Message
                     });
                 }
             })
