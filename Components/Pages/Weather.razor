@@ -1,0 +1,154 @@
+@page "/weather"
+@using WeatherApp.Models
+@using WeatherApp.Services
+@inject IWeatherForecastService ForecastService
+
+<PageTitle>Weather Forecast</PageTitle>
+
+<h1>Weather Forecast</h1>
+
+<p>Start with Tomorrow.io forecast now. You can layer in timeline later without changing the page structure much.</p>
+
+<div class="mb-3">
+    <label class="form-label" for="location">Location</label>
+    <div class="input-group">
+        <input id="location" class="form-control" @bind="location" @bind:event="oninput" placeholder="dixon ca " />
+        <button class="btn btn-primary" @onclick="LoadForecastAsync" disabled="@isLoading">Get Forecast</button>
+    </div>
+    <div class="form-text">Tomorrow.io accepts city names, ZIP codes, and latitude/longitude.</div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+@if (isLoading)
+{
+    <p><em>Loading forecast...</em></p>
+}
+else if (forecast is not null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h4 mb-2">Current Selection</h2>
+            <p class="mb-1"><strong>Resolved location:</strong> @DisplayLocation()</p>
+        </div>
+    </div>
+
+    @if (hourlyForecasts.Count > 0)
+    {
+        <h2 class="h4">Next 12 Hours</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Temp</th>
+                    <th>Feels Like</th>
+                    <th>Rain %</th>
+                    <th>Humidity</th>
+                    <th>Wind</th>
+                    <th>Conditions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var hour in hourlyForecasts)
+                {
+                    <tr>
+                        <td>@hour.Time.ToLocalTime().ToString("ddd h tt")</td>
+                        <td>@FormatNumber(hour.Temperature)@forecast.Units.Temperature</td>
+                        <td>@FormatNumber(hour.TemperatureApparent)@forecast.Units.Temperature</td>
+                        <td>@FormatNumber(hour.PrecipitationProbability)%</td>
+                        <td>@FormatNumber(hour.Humidity)%</td>
+                        <td>@FormatNumber(hour.WindSpeed) @forecast.Units.WindSpeed</td>
+                        <td>@hour.WeatherDescription</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (dailyForecasts.Count > 0)
+    {
+        <h2 class="h4 mt-4">Next 5 Days</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Low</th>
+                    <th>High</th>
+                    <th>Rain %</th>
+                    <th>Conditions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var day in dailyForecasts)
+                {
+                    <tr>
+                        <td>@day.Time.ToLocalTime().ToString("dddd")</td>
+                        <td>@FormatNumber(day.TemperatureMin)@forecast.Units.Temperature</td>
+                        <td>@FormatNumber(day.TemperatureMax)@forecast.Units.Temperature</td>
+                        <td>@FormatNumber(day.PrecipitationProbability)%</td>
+                        <td>@day.WeatherDescription</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private WeatherForecastResult? forecast;
+    private string location = "dixon ca";
+    private string? errorMessage;
+    private bool isLoading;
+
+    private List<WeatherForecastPeriod> hourlyForecasts => forecast?.HourlyPeriods.Take(12).ToList() ?? [];
+    private List<WeatherForecastPeriod> dailyForecasts => forecast?.DailyPeriods.Take(5).ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadForecastAsync();
+    }
+
+    private async Task LoadForecastAsync()
+    {
+        errorMessage = null;
+        isLoading = true;
+
+        try
+        {
+            forecast = await ForecastService.GetForecastAsync(location.Trim());
+        }
+        catch (TomorrowIoApiException ex)
+        {
+            errorMessage = $"{ex.Message} Response: {ex.ResponseBody}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string DisplayLocation()
+    {
+        var resolved = forecast?.Location;
+        if (resolved is null)
+        {
+            return location;
+        }
+
+        return $"{resolved.Name ?? location} ({resolved.Latitude:F4}, {resolved.Longitude:F4})";
+    }
+
+    private static string FormatNumber(decimal? value)
+    {
+        return value?.ToString("0.#") ?? "-";
+    }
+}
