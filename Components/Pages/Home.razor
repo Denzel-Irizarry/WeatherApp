@@ -1,7 +1,213 @@
-﻿@page "/"
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@using WeatherApp.Data
+@inject WeatherContext Db
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="dashboard">
+    <section class="hero-panel">
+        <div>
+            <p class="eyebrow">Weather Dashboard</p>
+            <h1>Forecast activity at a glance</h1>
+            <p class="hero-copy">This dashboard summarizes the forecasts you have saved so far, the locations you search most, and the latest snapshots captured by the app.</p>
+        </div>
+        <div class="hero-actions">
+            <a class="btn btn-light" href="/weather">Get Forecast</a>
+            <a class="btn btn-outline-light" href="/history">Search History</a>
+        </div>
+    </section>
 
-Welcome to your new app.
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+    else if (isLoading)
+    {
+        <p><em>Loading dashboard...</em></p>
+    }
+    else
+    {
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span class="summary-label">Saved Locations</span>
+                <strong>@savedLocationCount</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Forecast Snapshots</span>
+                <strong>@snapshotCount</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Forecast Periods</span>
+                <strong>@periodCount</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Latest Capture</span>
+                <strong>@(latestSnapshotText ?? "No data yet")</strong>
+            </article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="dashboard-card">
+                <div class="card-heading">
+                    <div>
+                        <p class="eyebrow">Recent Activity</p>
+                        <h2>Latest snapshots</h2>
+                    </div>
+                </div>
+
+                @if (recentSnapshots.Count == 0)
+                {
+                    <p class="empty-state">No snapshots saved yet. Use the Weather page to fetch a forecast and populate the dashboard.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Saved</th>
+                                    <th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var snapshot in recentSnapshots)
+                                {
+                                    <tr>
+                                        <td>@snapshot.LocationName</td>
+                                        <td>@snapshot.FetchedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</td>
+                                        <td>@snapshot.QueriedLocation</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </article>
+
+            <article class="dashboard-card">
+                <div class="card-heading">
+                    <div>
+                        <p class="eyebrow">Most Active</p>
+                        <h2>Top locations</h2>
+                    </div>
+                </div>
+
+                @if (topLocations.Count == 0)
+                {
+                    <p class="empty-state">No locations have been saved yet.</p>
+                }
+                else
+                {
+                    <div class="location-list">
+                        @foreach (var location in topLocations)
+                        {
+                            <div class="location-row">
+                                <div>
+                                    <strong>@location.Name</strong>
+                                    <div class="text-muted">@location.Latitude.ToString("0.####"), @location.Longitude.ToString("0.####")</div>
+                                </div>
+                                <span class="pill">@location.SnapshotCount snapshot(s)</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </article>
+        </section>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? errorMessage;
+    private int savedLocationCount;
+    private int snapshotCount;
+    private int periodCount;
+    private string? latestSnapshotText;
+    private readonly List<RecentSnapshotItem> recentSnapshots = [];
+    private readonly List<TopLocationItem> topLocations = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            savedLocationCount = await Db.SavedLocations.CountAsync();
+            snapshotCount = await Db.ForecastSnapshots.CountAsync();
+            periodCount = await Db.ForecastPeriods.CountAsync();
+
+            var allSnapshots = await Db.ForecastSnapshots
+                .AsNoTracking()
+                .Include(snapshot => snapshot.SavedLocation)
+                .ToListAsync();
+
+            var latestSnapshot = allSnapshots
+                .OrderByDescending(snapshot => snapshot.FetchedAtUtc)
+                .FirstOrDefault();
+
+            latestSnapshotText = latestSnapshot is null
+                ? null
+                : $"{(latestSnapshot.SavedLocation?.Name ?? latestSnapshot.QueriedLocation)} on {latestSnapshot.FetchedAtUtc.ToLocalTime():MMM d}";
+
+            recentSnapshots.Clear();
+            recentSnapshots.AddRange(allSnapshots
+                .OrderByDescending(snapshot => snapshot.FetchedAtUtc)
+                .Take(6)
+                .Select(snapshot => new RecentSnapshotItem
+                {
+                    LocationName = snapshot.SavedLocation != null && snapshot.SavedLocation.Name != null
+                        ? snapshot.SavedLocation.Name
+                        : snapshot.QueriedLocation,
+                    QueriedLocation = snapshot.QueriedLocation,
+                    FetchedAtUtc = snapshot.FetchedAtUtc
+                })
+                .ToList());
+
+            topLocations.Clear();
+            topLocations.AddRange(await Db.SavedLocations
+                .AsNoTracking()
+                .OrderByDescending(location => location.Snapshots.Count)
+                .ThenBy(location => location.Name)
+                .Take(5)
+                .Select(location => new TopLocationItem
+                {
+                    Name = location.Name ?? "Unknown",
+                    Latitude = location.Latitude,
+                    Longitude = location.Longitude,
+                    SnapshotCount = location.Snapshots.Count
+                })
+                .ToListAsync());
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private sealed class RecentSnapshotItem
+    {
+        public string LocationName { get; init; } = string.Empty;
+        public string QueriedLocation { get; init; } = string.Empty;
+        public DateTimeOffset FetchedAtUtc { get; init; }
+    }
+
+    private sealed class TopLocationItem
+    {
+        public string Name { get; init; } = string.Empty;
+        public double Latitude { get; init; }
+        public double Longitude { get; init; }
+        public int SnapshotCount { get; init; }
+    }
+}

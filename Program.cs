@@ -1,7 +1,9 @@
 using WeatherApp.Components;
+using WeatherApp.Data;
 using WeatherApp.Models;
 using WeatherApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace WeatherApp
@@ -17,12 +19,22 @@ namespace WeatherApp
                 .AddInteractiveServerComponents();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            var connectionString = builder.Configuration.GetConnectionString("WeatherDatabase")
+                ?? "Data Source=weather.db";
+            builder.Services.AddDbContext<WeatherContext>(options =>
+                options.UseSqlite(connectionString));
             builder.Services.Configure<TomorrowIoOptions>(
                 builder.Configuration.GetSection(TomorrowIoOptions.SectionName));
             builder.Services.AddHttpClient<TomorrowIoForecastService>();
             builder.Services.AddScoped<IWeatherForecastService, TomorrowIoForecastService>();
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<WeatherContext>();
+                dbContext.Database.EnsureCreated();
+            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

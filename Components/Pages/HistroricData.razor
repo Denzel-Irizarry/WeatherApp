@@ -1,0 +1,311 @@
+@page "/history"
+@page "/HistroricData"
+@using Microsoft.EntityFrameworkCore
+@using WeatherApp.Data
+@inject WeatherContext Db
+
+<PageTitle>Historical Data</PageTitle>
+
+<div class="history-page">
+    <section class="history-header">
+        <div>
+            <p class="eyebrow">Historical Search</p>
+            <h1>Saved forecast history</h1>
+            <p class="lede">Search the forecast snapshots already stored in your app by location, saved date, and forecast period type.</p>
+        </div>
+    </section>
+
+    <section class="history-filters card shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label" for="history-location">Location</label>
+                    <input id="history-location" class="form-control" @bind="locationQuery" @bind:event="oninput" placeholder="Dixon, ZIP, or saved query" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="history-period-type">Period Type</label>
+                    <select id="history-period-type" class="form-select" @bind="selectedPeriodType">
+                        <option value="hourly">Hourly</option>
+                        <option value="daily">Daily</option>
+                        <option value="minutely">Minutely</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="history-from">Saved From</label>
+                    <input id="history-from" class="form-control" type="date" @bind="fromDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="history-to">Saved To</label>
+                    <input id="history-to" class="form-control" type="date" @bind="toDate" />
+                </div>
+                <div class="col-md-1 d-grid">
+                    <button class="btn btn-primary" @onclick="LoadHistoryAsync" disabled="@isLoading">Search</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger mt-3" role="alert">@errorMessage</div>
+    }
+
+    @if (isLoading)
+    {
+        <p class="mt-3"><em>Loading historical data...</em></p>
+    }
+    else
+    {
+        <section class="history-stats">
+            <article class="stat-card">
+                <span class="stat-label">Snapshots</span>
+                <strong>@results.Count</strong>
+            </article>
+            <article class="stat-card">
+                <span class="stat-label">Matching Periods</span>
+                <strong>@results.Sum(result => result.Periods.Count)</strong>
+            </article>
+            <article class="stat-card">
+                <span class="stat-label">Date Range</span>
+                <strong>@fromDate.ToString("yyyy-MM-dd") to @toDate.ToString("yyyy-MM-dd")</strong>
+            </article>
+        </section>
+
+        @if (results.Count == 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="h5">No saved history found</h2>
+                    <p class="mb-0">Fetch forecasts on the Weather page first, then search here to review the snapshots you have already stored.</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <section class="history-results">
+                @foreach (var result in results)
+                {
+                    <article class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="result-header">
+                                <div>
+                                    <h2 class="h5 mb-1">@result.LocationName</h2>
+                                    <p class="text-muted mb-0">Saved @result.FetchedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt") from query "@result.QueriedLocation"</p>
+                                </div>
+                                <span class="badge text-bg-light">@result.PeriodType</span>
+                            </div>
+
+                            <div class="table-responsive mt-3">
+                                @if (selectedPeriodType == "daily")
+                                {
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Forecast Day</th>
+                                                <th>Low</th>
+                                                <th>High</th>
+                                                <th>Rain %</th>
+                                                <th>Wind</th>
+                                                <th>Conditions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var period in result.Periods)
+                                            {
+                                                <tr>
+                                                    <td>@period.Time.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                                    <td>@FormatNumber(period.TemperatureMin)@result.TemperatureUnit</td>
+                                                    <td>@FormatNumber(period.TemperatureMax)@result.TemperatureUnit</td>
+                                                    <td>@FormatNumber(period.PrecipitationProbability)%</td>
+                                                    <td>@FormatNumber(period.WindSpeed) @result.WindSpeedUnit</td>
+                                                    <td>@period.WeatherDescription</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Forecast Time</th>
+                                                <th>Temp</th>
+                                                <th>Rain %</th>
+                                                <th>Humidity</th>
+                                                <th>Wind</th>
+                                                <th>Conditions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var period in result.Periods)
+                                            {
+                                                <tr>
+                                                    <td>@period.Time.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</td>
+                                                    <td>@FormatNumber(period.Temperature)@result.TemperatureUnit</td>
+                                                    <td>@FormatNumber(period.PrecipitationProbability)%</td>
+                                                    <td>@FormatNumber(period.Humidity)%</td>
+                                                    <td>@FormatNumber(period.WindSpeed) @result.WindSpeedUnit</td>
+                                                    <td>@period.WeatherDescription</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </div>
+                    </article>
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private readonly List<HistoricalSnapshotResult> results = [];
+    private string locationQuery = string.Empty;
+    private string selectedPeriodType = "hourly";
+    private DateOnly fromDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-7));
+    private DateOnly toDate = DateOnly.FromDateTime(DateTime.Today);
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistoryAsync();
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        results.Clear();
+
+        try
+        {
+            if (fromDate > toDate)
+            {
+                errorMessage = "The start date must be before the end date.";
+                return;
+            }
+
+            var start = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
+            var end = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local);
+            var startOffset = new DateTimeOffset(start);
+            var endOffset = new DateTimeOffset(end);
+            var normalizedQuery = locationQuery.Trim();
+
+            var snapshotIdsForPeriodType = await Db.ForecastPeriods
+                .AsNoTracking()
+                .Where(period => period.PeriodType == selectedPeriodType)
+                .Select(period => period.ForecastSnapshotId)
+                .Distinct()
+                .ToListAsync();
+
+            var snapshotRows = await Db.ForecastSnapshots
+                .AsNoTracking()
+                .Include(snapshot => snapshot.SavedLocation)
+                .ToListAsync();
+
+            var snapshots = snapshotRows
+                .Where(snapshot => snapshot.FetchedAtUtc >= startOffset && snapshot.FetchedAtUtc <= endOffset)
+                .Where(snapshot => string.IsNullOrWhiteSpace(normalizedQuery)
+                    || snapshot.QueriedLocation.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
+                    || (snapshot.SavedLocation?.Name?.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Where(snapshot => snapshotIdsForPeriodType.Contains(snapshot.Id))
+                .OrderByDescending(snapshot => snapshot.FetchedAtUtc)
+                .Take(8)
+                .Select(snapshot => new HistoricalSnapshotSeed
+                {
+                    SnapshotId = snapshot.Id,
+                    LocationName = snapshot.SavedLocation?.Name ?? snapshot.QueriedLocation,
+                    QueriedLocation = snapshot.QueriedLocation,
+                    FetchedAtUtc = snapshot.FetchedAtUtc,
+                    TemperatureUnit = snapshot.TemperatureUnit,
+                    WindSpeedUnit = snapshot.WindSpeedUnit
+                })
+                .ToList();
+
+            foreach (var snapshot in snapshots)
+            {
+                var periodRows = await Db.ForecastPeriods
+                    .AsNoTracking()
+                    .Where(period => period.ForecastSnapshotId == snapshot.SnapshotId && period.PeriodType == selectedPeriodType)
+                    .ToListAsync();
+
+                var orderedPeriods = periodRows
+                    .OrderBy(period => period.Time)
+                    .Take(selectedPeriodType == "daily" ? 7 : 10)
+                    .Select(period => new HistoricalPeriodResult
+                    {
+                        Time = period.Time,
+                        Temperature = period.TemperatureMax ?? period.TemperatureMin ?? period.Temperature,
+                        TemperatureMin = period.TemperatureMin,
+                        TemperatureMax = period.TemperatureMax,
+                        PrecipitationProbability = period.PrecipitationProbability,
+                        Humidity = period.Humidity,
+                        WindSpeed = period.WindSpeed,
+                        WeatherDescription = period.WeatherDescription
+                    })
+                    .ToList();
+
+                results.Add(new HistoricalSnapshotResult
+                {
+                    LocationName = snapshot.LocationName,
+                    QueriedLocation = snapshot.QueriedLocation,
+                    FetchedAtUtc = snapshot.FetchedAtUtc,
+                    PeriodType = selectedPeriodType,
+                    TemperatureUnit = snapshot.TemperatureUnit,
+                    WindSpeedUnit = snapshot.WindSpeedUnit,
+                    Periods = orderedPeriods
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatNumber(decimal? value)
+    {
+        return value?.ToString("0.#") ?? "-";
+    }
+
+    private sealed class HistoricalSnapshotResult
+    {
+        public string LocationName { get; init; } = string.Empty;
+        public string QueriedLocation { get; init; } = string.Empty;
+        public DateTimeOffset FetchedAtUtc { get; init; }
+        public string PeriodType { get; init; } = string.Empty;
+        public string TemperatureUnit { get; init; } = string.Empty;
+        public string WindSpeedUnit { get; init; } = string.Empty;
+        public List<HistoricalPeriodResult> Periods { get; init; } = [];
+    }
+
+    private sealed class HistoricalSnapshotSeed
+    {
+        public int SnapshotId { get; init; }
+        public string LocationName { get; init; } = string.Empty;
+        public string QueriedLocation { get; init; } = string.Empty;
+        public DateTimeOffset FetchedAtUtc { get; init; }
+        public string TemperatureUnit { get; init; } = string.Empty;
+        public string WindSpeedUnit { get; init; } = string.Empty;
+    }
+
+    private sealed class HistoricalPeriodResult
+    {
+        public DateTimeOffset Time { get; init; }
+        public decimal? Temperature { get; init; }
+        public decimal? TemperatureMin { get; init; }
+        public decimal? TemperatureMax { get; init; }
+        public decimal? PrecipitationProbability { get; init; }
+        public decimal? Humidity { get; init; }
+        public decimal? WindSpeed { get; init; }
+        public string WeatherDescription { get; init; } = string.Empty;
+    }
+}

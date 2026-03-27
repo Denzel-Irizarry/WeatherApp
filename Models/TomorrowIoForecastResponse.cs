@@ -97,14 +97,47 @@ public sealed class TomorrowIoValues
     [JsonPropertyName("weatherCode")]
     public int? WeatherCode { get; set; }
 
+    [JsonPropertyName("weatherCodeFullDay")]
+    public int? WeatherCodeFullDay { get; set; }
+
+    [JsonPropertyName("weatherCodeDay")]
+    public int? WeatherCodeDay { get; set; }
+
+    [JsonPropertyName("weatherCodeNight")]
+    public int? WeatherCodeNight { get; set; }
+
+    [JsonPropertyName("weatherCodeMax")]
+    public int? WeatherCodeMax { get; set; }
+
+    [JsonPropertyName("weatherCodeMin")]
+    public int? WeatherCodeMin { get; set; }
+
     [JsonPropertyName("humidity")]
     public decimal? Humidity { get; set; }
+
+    [JsonPropertyName("humidityAvg")]
+    public decimal? HumidityAvg { get; set; }
+
+    [JsonPropertyName("humidityMax")]
+    public decimal? HumidityMax { get; set; }
 
     [JsonPropertyName("windSpeed")]
     public decimal? WindSpeed { get; set; }
 
+    [JsonPropertyName("windSpeedAvg")]
+    public decimal? WindSpeedAvg { get; set; }
+
+    [JsonPropertyName("windSpeedMax")]
+    public decimal? WindSpeedMax { get; set; }
+
     [JsonPropertyName("precipitationProbability")]
     public decimal? PrecipitationProbability { get; set; }
+
+    [JsonPropertyName("precipitationProbabilityAvg")]
+    public decimal? PrecipitationProbabilityAvg { get; set; }
+
+    [JsonPropertyName("precipitationProbabilityMax")]
+    public decimal? PrecipitationProbabilityMax { get; set; }
 
     [JsonPropertyName("temperatureMax")]
     public decimal? TemperatureMax { get; set; }

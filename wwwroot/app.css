@@ -1,19 +1,121 @@
+:root {
+    color-scheme: light;
+    --app-bg: #eef4f7;
+    --app-surface: rgba(255, 255, 255, 0.78);
+    --app-surface-strong: #ffffff;
+    --app-surface-border: #d5e2ea;
+    --app-text: #14324a;
+    --app-text-muted: #627887;
+    --app-link: #1c6fa8;
+    --app-focus: rgba(50, 132, 199, 0.35);
+    --app-primary: #1e66a5;
+    --app-primary-hover: #175485;
+    --app-primary-border: #174f7d;
+    --app-hero-start: #12355b;
+    --app-hero-mid: #2d6a8a;
+    --app-hero-end: #4ea699;
+    --app-sidebar-top: #12355b;
+    --app-sidebar-mid: #2d6a8a;
+    --app-sidebar-end: #4ea699;
+    --app-sidebar-overlay: rgba(255, 255, 255, 0.08);
+    --app-nav-text: rgba(245, 251, 255, 0.82);
+    --app-nav-active-bg: rgba(255, 255, 255, 0.22);
+    --app-nav-hover-bg: rgba(255, 255, 255, 0.12);
+    --app-topbar-bg: rgba(255, 255, 255, 0.7);
+    --app-topbar-border: rgba(18, 53, 91, 0.08);
+    --app-shadow: 0 16px 42px rgba(18, 53, 91, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --app-bg: #07141d;
+        --app-surface: rgba(10, 24, 36, 0.82);
+        --app-surface-strong: #0c1d2b;
+        --app-surface-border: rgba(126, 163, 187, 0.18);
+        --app-text: #e2f0f6;
+        --app-text-muted: #9eb5c4;
+        --app-link: #88c6ff;
+        --app-focus: rgba(122, 193, 255, 0.35);
+        --app-primary: #58a6df;
+        --app-primary-hover: #4b95cb;
+        --app-primary-border: #4086b7;
+        --app-hero-start: #081a2a;
+        --app-hero-mid: #12314c;
+        --app-hero-end: #174f60;
+        --app-sidebar-top: #081a2a;
+        --app-sidebar-mid: #12314c;
+        --app-sidebar-end: #174f60;
+        --app-sidebar-overlay: rgba(255, 255, 255, 0.04);
+        --app-nav-text: rgba(226, 240, 246, 0.86);
+        --app-nav-active-bg: rgba(136, 198, 255, 0.2);
+        --app-nav-hover-bg: rgba(255, 255, 255, 0.08);
+        --app-topbar-bg: rgba(9, 21, 32, 0.82);
+        --app-topbar-border: rgba(126, 163, 187, 0.14);
+        --app-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+}
+
 html, body {
+    background:
+        radial-gradient(circle at top left, rgba(78, 166, 153, 0.14), transparent 24%),
+        linear-gradient(180deg, rgba(18, 53, 91, 0.04), transparent 22%),
+        var(--app-bg);
+    color: var(--app-text);
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    min-height: 100%;
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: var(--app-link);
+}
+
+a:hover, .btn-link:hover {
+    color: var(--app-primary);
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--app-primary);
+    border-color: var(--app-primary-border);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--app-primary-hover);
+    border-color: var(--app-primary-border);
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-select:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.15rem rgba(255, 255, 255, 0.85), 0 0 0 0.35rem var(--app-focus);
+}
+
+.form-control,
+.form-select,
+.table,
+.card,
+.dropdown-menu,
+.list-group-item {
+    background-color: var(--app-surface-strong);
+    border-color: var(--app-surface-border);
+    color: var(--app-text);
+}
+
+.form-control::placeholder {
+    color: var(--app-text-muted);
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--app-text);
+    --bs-table-striped-bg: rgba(18, 53, 91, 0.05);
+    --bs-table-hover-bg: rgba(18, 53, 91, 0.08);
+    border-color: var(--app-surface-border);
+}
+
+.card {
+    box-shadow: var(--app-shadow);
 }
 
 .content {
@@ -42,16 +144,16 @@ h1:focus {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
+    color: var(--app-text-muted);
     text-align: end;
 }
 
