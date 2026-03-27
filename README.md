@@ -66,13 +66,10 @@ WeatherApp/
 
 ## Screenshots
 
-You can add screenshots to a `docs/` folder and reference them here.
-
-```md
 ![Dashboard](docs/dashboard.png)
-![Weather Forecast](docs/weather-forecast.png)
-![Historical Search](docs/historical-search.png)
-```
+![Weather Forecast](docs/apiCalls.png)
+![Historical Search](docs/historical.png)
+
 
 ## Getting Started
 
@@ -141,8 +138,6 @@ The app supports:
 ## Attribution
 
 Weather icons are provided by Tomorrow.io.
-
-If you use the included icons, keep the Tomorrow.io attribution in the app.
 
 ## Future Improvements
 
